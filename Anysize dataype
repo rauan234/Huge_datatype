@@ -1,0 +1,479 @@
+#include <iostream>
+#include <conio.h>
+#include <string>
+#include <time.h>
+#include <math.h>
+
+using namespace std;
+
+
+
+#define byte unsigned char
+#define ush  unsigned short
+#define uint unsigned int
+#define ull  unsigned long long
+
+#define edt long long // equation data type
+
+const char Digits[] = {
+	'0',
+	'1',
+	'2',
+	'3',
+	'4',
+	'5',
+	'6',
+	'7',
+	'8',
+	'9',
+	'a',
+	'b',
+	'c',
+	'd',
+	'e',
+	'f'
+};
+
+
+
+template<typename type>
+type Random(type min, type max) {
+	type num = 1;
+	for (byte q = 0; q < (short(log(max - min) / log(RAND_MAX) + 1)); q++) {
+		num += rand() * pow(RAND_MAX, q);
+	}
+
+	return ((num % (max - min)) + min);
+}
+edt min(edt a, edt b) {
+	if (a > b) {
+		return b;
+	}
+	else {
+		return a;
+	}
+}
+edt max(edt a, edt b) {
+	if (a > b) {
+		return a;
+	}
+	else {
+		return b;
+	}
+}
+edt notzero(edt inp) {
+	if (inp == 0) {
+		return 1;
+	}
+	else {
+		return inp;
+	}
+}
+
+
+
+template<uint size>
+class Anysize {
+private:
+	void* pointer;
+	byte value[size];
+
+public:
+	uint valuesize;
+
+	Anysize() {
+		valuesize = size;
+
+		pointer = value;
+		clear();
+	}
+	
+	Anysize<size> operator/(Anysize other) {
+		Anysize<size> out;
+		out = 1;
+
+		Anysize<size> num;
+		num = *this;
+
+		Anysize<size> dlt;
+		Anysize<size> plus;
+		plus = 1;
+		dlt = other;
+		while (!(*dlt.get(size - 1) >> 7)) {
+			dlt.shift();
+			plus.shift();
+		}
+
+		for (ull q = 0; q < size * 8; q++) {
+			if (num > dlt) {
+				num -= dlt;
+				
+				out += plus;
+			}
+
+			dlt.backshift();
+			plus.backshift();
+		}
+
+		return out;
+	}
+	template<typename datatype>
+	Anysize<size> operator/(datatype num) {
+		Anysize<size> other;
+		other = num;
+
+		return operator/(other);
+	}
+	Anysize<size> operator-(Anysize other) {
+		Anysize<size> out;
+
+		bool left = 0;
+		short dif;
+		for (uint q = 0; q < size; q++) {
+			dif = *get(q) - left;
+			if (q < other.valuesize) {
+				dif -= *other.get(q);
+			}
+			left = 0;
+			if (dif < 0) {
+				left = 1;
+				dif += 256;
+			}
+
+			*out.get(q) = dif;
+		}
+
+		return out;
+	}
+	template<typename datatype>
+	Anysize<size> operator-(datatype num) {
+		Anysize<size> out;
+
+		void* pnt = &num;
+		bool left = 0;
+		short dif;
+		for (uint q = 0; q < size; q++) {
+			dif = *get(q) - left;
+			if (q < sizeof(num)) {
+				dif -= (static_cast<byte*>(pnt)[q]);
+			}
+			if (dif < 0) {
+				left = 1;
+				dif += 256;
+			}
+
+			*out.get(q) = dif;
+		}
+
+		return out;
+	}
+	Anysize<size> operator+(Anysize other) {
+		Anysize<size> out;
+
+		ush sum;
+		for (uint q = 0; q < size; q++) {
+			sum = *this->get(q) + *other.get(q);
+			*out.get(q) +=      sum & 255;
+			*out.get(q + 1) +=  (sum >> 8) & 255; // 255 is 11111111 in decimal
+		}
+
+		return out;
+	}
+	Anysize<size> operator*(Anysize other) {
+		Anysize<size> out;
+
+		Anysize<size> dlt;
+		dlt = other;
+		for (uint q = 0; q < size; q++) {
+			for (byte w = 0; w < 8; w++) {
+
+				if ((*get(q) >> w) & 1) { // get w`th bit of q`th byte of this->value
+					out += dlt;
+				}
+
+				dlt.shift();
+			}
+		}
+
+		return out;
+	}
+	template<typename datatype>
+	Anysize<size> operator+(datatype num) {
+		Anysize<size> out;
+
+		ush sum;
+		for (uint q = 0; q < size; q++) {
+			sum = *this->get(q) + ((num >> (q * 8)) & 255);
+			*out.get(q) +=      sum & 255;
+			*out.get(q + 1) += (sum >> 8) & 255; // 255 is 11111111 in decimal
+		}
+
+		return out;
+	}
+	template<typename datatype>
+	Anysize<size> operator*(datatype num) {
+		Anysize<size> out;
+
+		Anysize<size> dlt;
+		dlt = num;
+		for (uint q = 0; q < size; q++) {
+			for (byte w = 0; w < 8; w++) {
+
+				if ((*get(q) >> w) & 1) { // get w`th bit of q`th byte of this->value
+					out += dlt;
+				}
+
+				dlt.shift();
+			}
+		}
+
+		return out;
+	}
+	bool operator==(Anysize other) {
+		for (uint q = 0; q < size; q++) {
+			if (*get(q) != *other.get(q)) {
+				return 0;
+			}
+		}
+
+		return 1;
+	}
+	bool operator!=(Anysize other) {
+		return !operator==(other);
+	}
+	template<typename datatype>
+	bool operator==(datatype num) {
+		pointer = value;
+		bool out = (*static_cast<datatype*>(pointer) == num);
+		if (out) {
+			for (uint q = sizeof(num); q < size; q++) {
+				if (value[q] > 0) {
+					out = 0;
+					break;
+				}
+			}
+		}
+
+		return out;
+	}
+	template<typename datatype>
+	bool operator!=(datatype num) {
+		return !operator==(num);
+	}
+	bool operator>(Anysize other) {
+		uint ind = size - 1;
+		for (uint q = 0; q < size; q++) {
+			if (*get(ind) > *other.get(ind)) {
+				return 1;
+			}
+			if (*other.get(ind) > *get(ind)) {
+				return 0;
+			}
+
+			ind--;
+		}
+
+		return 0;
+	}
+	bool operator<(Anysize other) {
+		uint ind = size - 1;
+		for (uint q = 0; q < size; q++) {
+			if (*get(ind) < *other.get(ind)) {
+				return 1;
+			}
+			if (*other.get(ind) < *get(ind)) {
+				return 0;
+			}
+
+			ind--;
+		}
+
+		return 0;
+	}
+	template<typename datatype>
+	bool operator>(datatype num) {
+		Anysize<size> other;
+		other = num;
+
+		uint ind = size - 1;
+		for (uint q = 0; q < size; q++) {
+			if (ind < sizeof(num)) {
+				if (*get(ind) > ((num >> (ind * 8)) & 255)) {
+					return 1;
+				}
+				if (((num >> (ind * 8)) & 255) > *get(ind)) {
+					return 0;
+				}
+			}
+			else {
+				if (*get(ind) > 0) {
+					return 1;
+				}
+			}
+
+			ind--;
+		}
+
+		return 0;
+	}
+	template<typename datatype>
+	bool operator<(datatype num) {
+		Anysize<size> other;
+		other = num;
+
+		uint ind = size - 1;
+		for (uint q = 0; q < size; q++) {
+			if (ind < sizeof(num)) {
+				if (*get(ind) < ((num >> (ind * 8)) & 255)) {
+					return 1;
+				}
+				if (((num >> (ind * 8)) & 255) < *get(ind)) {
+					return 0;
+				}
+			}
+			else {
+				if (*get(ind) > 0) {
+					return 0;
+				}
+			}
+
+			ind--;
+		}
+
+		return 0;
+	}
+	bool operator>=(Anysize other) {
+		return !operator<(other);
+	}
+	bool operator<=(Anysize other) {
+		return !operator>(other);
+	}
+	template<typename datatype>
+	bool operator>=(datatype num) {
+		return !operator<(num);
+	}
+	template<typename datatype>
+	bool operator<=(datatype num) {
+		return !operator>(num);
+	}
+	void operator/=(Anysize other) {
+		operator=(operator/(other));
+	}
+	template<typename datatype>
+	void operator/=(datatype num) {
+		operator=(operator/(num));
+	}
+
+	void operator-=(Anysize other) {
+		operator=(operator-(other));
+	}
+	template<typename datatype>
+	void operator-=(datatype num) {
+		operator=(operator-(num));
+	}
+	void operator+=(Anysize other) {
+		operator=(operator+(other));
+	}
+	template<typename datatype>
+	void operator+=(datatype num) {
+		operator=(operator+(num));
+	}
+	void operator*=(Anysize other) {
+		operator=(operator*(other));
+	}
+	template<typename datatype>
+	void operator*=(datatype num) {
+		operator=(operator*(num));
+	}
+	void operator=(Anysize other) {
+		for (uint q = 0; q < other.valuesize; q++) {
+			value[q] = other.value[q];
+		}
+	}
+	template<typename datatype>
+	void operator=(datatype num) {
+		clear();
+		pointer = value;
+		*static_cast<datatype*>(pointer) = abs(num);
+	}
+
+	void shift() {
+		bool last, oldlast;
+
+		oldlast = 0;
+		for (uint q = 0; q < size; q++) {
+			last = (value[q] >> 7);
+			value[q] = value[q] << 1;
+			value[q] += oldlast;
+			oldlast = last;
+		}
+	}
+	void backshift() {
+		bool last, oldlast;
+
+		uint ind = size - 1;
+		oldlast = 0;
+		for (uint q = 0; q < size; q++) {
+			last = (value[ind] % 2);
+			value[ind] = value[ind] >> 1;
+			value[ind] += 128 * oldlast;
+			oldlast = last;
+
+			ind -= 1;
+		}
+	}
+	void clear() {
+		for (uint q = 0; q < size; q++) {
+			value[q] = 0;
+		}
+	}
+	byte* get(uint ind) {
+		return (value + ind);
+	}
+	void hex(bool newline) {
+		cout << "0x";
+
+		for (uint q = 0; q < size; q++) {
+			cout << Digits[(value[size - 1 - q] >> 4) & char(15)];
+			cout << Digits[ value[size - 1 - q]       & char(15)]; // 00001111 in decimal
+		}
+
+		if (newline) {
+			cout << endl;
+		}
+	}
+	void bin(bool newline) {
+		cout << "0b";
+
+		for (uint q = 0; q < size; q++) {
+			for (char w = 7; w >= 0; w--) {
+				cout << Digits[(value[size - 1 - q] >> w) & char(1)];
+			}
+		}
+
+		if (newline) {
+			cout << endl;
+		}
+	}
+};
+
+
+
+int main() {
+	srand(time(0));
+  
+  Anysize<100> val;
+  val = 1234;
+  val *= 4567;
+  val *= 8901;
+  val += 999999;
+  val *= val;
+  val /= 2;
+  val -= 123;
+  
+  val.hex(1);
+  
+	cout << endl << "Finish" << endl;
+	_getch();
+	return 0;
+}
